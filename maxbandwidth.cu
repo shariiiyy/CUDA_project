@@ -24,7 +24,7 @@
 
 
 //input element size
-const int N = 1024*512;
+const int N = 1024*1024*32;
 //block size
 const int blocksize = 1024;
 
@@ -32,12 +32,16 @@ const int blocksize = 1024;
 __global__ void maxBandwidth(int n, float* in, float* out){
   
   int i = blockIdx.x*blockDim.x + threadIdx.x;
-  
+ 
   if(i < n){
-    float temp = in[i] + i * 2.0f;
-    out[i] = out[i] + temp / (0.5f);
-    
+    float temp = in[i] * 2.0f;
+    //printf("%f\n", temp);
+    out[i] = out[i] + temp;  
   }
+  /*if(threadIdx.x == 0 && blockIdx.x == 0){
+	printf("%d\n", threadIdx.x);
+  }
+  */
 }
 
 
@@ -60,8 +64,8 @@ int main(int argc, char **argv)
   // initalize the memory
   for( unsigned int i = 0; i < N ; ++i)
     {
-        in[i] = (float)i;
-	out[i] = 3.0f;
+        in[i] = 1.0f;
+	out[i] = 0.0f;
     }
 
   //allocate device memory
@@ -70,30 +74,39 @@ int main(int argc, char **argv)
   CUDA_SAFE_CALL(cudaMalloc(&d_out, numbytes));
   CUDA_SAFE_CALL(cudaMemcpy(d_in, in, numbytes, cudaMemcpyHostToDevice));
 
-
-
+ 
   dim3  block(N/blocksize, 1, 1);
     //max block size(1024, 1024, 64)
   dim3  thread(blocksize, 1 ,1);
 
   // execute the kernel
   cudaEventRecord(start, 0);
-  maxBandwidth<<< block, thread, numbytes>>>(N, d_in, d_out);
+  maxBandwidth<<< block, thread>>>(N, d_in, d_out);
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
 
-  // check if kernel execution generated and error
-  // CUT_CHECK_ERROR("Kernel execution failed");
-
-
+  // copy output to host memory
   CUDA_SAFE_CALL( cudaMemcpy(out, d_out, numbytes, cudaMemcpyDeviceToHost));
-
-
+  
+  //check output from kernel
+  int flag = 1;
+  for(unsigned int j=0; j<N; j++){
+ 	if(out[j] != 2.0 ){
+		printf("out[%d]: %f\n", j, out[j]);
+		flag = 0;
+	}
+  }
+  if(flag == 1){
+	printf("ALL SUCCESS!\n");
+  }else{
+	printf("WRONG!!!\n");
+  }
+  
   float elapsedTime;
   cudaEventElapsedTime(&elapsedTime, start, stop);
   printf("\nProcessing time: %f (ms)\n", elapsedTime);
-  printf("Effective Bandwidth (GB/s): %f\n", (numbytes*3)/elapsedTime/1e6);
-  // printf("Total number of memory read/write on GPU (bytes): %d\n\n", numbytes);
+  printf("Effective Bandwidth (GB/s): %f\n\n", (3*numbytes)/elapsedTime/1e6);
+  //printf("Total number of memory read/write on GPU (bytes): %d\n\n", numbytes);
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
