@@ -34,17 +34,12 @@ __global__ void maxBandwidth(int n, float* in, float* out){
   int i = blockIdx.x*blockDim.x + threadIdx.x;
  
   if(i < n){
-    float temp1 = in[i] * 2.0f;//2.0
-    
-    float temp2 = in[i] * 3.0f;//3.0
-    float temp3 = in[i];       //1.0
-    float temp4 = in[i] + 1.0f;
-    
-
-    float ans = out[i] + temp1 + temp2 + temp4 - temp3;//ans = 6.0
-
-    //float ans = out[i] + temp5;//4.0 
-    out[i] = ans;
+    in[i] = in[i] + 4.0f;   //5.0
+    out[i] = out[i] + in[i];//5.0
+    in[i] = in[i] - 4.0f;   //1.0
+    out[i] = out[i] - in[i];//4.0
+    in[i] = in[i] + 1.0f;   //2.0
+    out[i] = out[i] + in[i];//6.0
   }
   /*if(threadIdx.x == 0 && blockIdx.x == 0){
 	printf("%d\n", threadIdx.x);
@@ -113,7 +108,7 @@ int main(int argc, char **argv)
   float elapsedTime;
   cudaEventElapsedTime(&elapsedTime, start, stop);
   printf("\nProcessing time: %f (ms)\n", elapsedTime);
-  printf("Effective Bandwidth (GB/s): %f\n\n", (3*numbytes)/elapsedTime/1e6);
+  printf("Effective Bandwidth (GB/s): %f\n\n", (12*numbytes)/elapsedTime/1e6);
 
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
@@ -125,4 +120,3 @@ int main(int argc, char **argv)
   CUDA_SAFE_CALL(cudaFree(d_out));
 
 }
-
